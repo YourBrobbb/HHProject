@@ -1,0 +1,12 @@
+1) Установить пакеты
+
+  python3 -m pip install -r requirements.txt
+
+2) Запуск проекта:
+
+  В Terminal перейдите в папку с проектом и запустите:
+  python3 -m src.main --pages 5
+
+Примечание: итоговый файл с объявлениями — Data/ads.xlsx
+Запуск только проверки зон WB:
+  python3 -m src.main --wb-only
