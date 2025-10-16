@@ -111,9 +111,30 @@ def normalize_address_for_geocoding(address: str, city: Optional[str]) -> str:
     a = re.sub(r"\s*\([^\)]*\)", "", a)
     parts = [p.strip() for p in a.split(',') if p.strip()]
     filtered = [p for p in parts if not any(tok.lower() in p.lower() for tok in tokens_to_drop)]
-    if city and all(city.lower() not in p.lower() for p in filtered):
-        filtered.insert(0, city)
-    return ', '.join(filtered) if filtered else (city + ', ' + a if city else a)
+    # Попытка выделить шаблон: Город, Улица, Дом
+    # Пример: "Москва, 2-й Кожевнический пер., 3 Павелецкая ..." -> "Москва, 2-й Кожевнический пер., 3"
+    addr_for_parse = ', '.join(filtered) if filtered else a
+    m_full = re.match(r'^\s*([^,]+),\s*([^,]+),\s*(\d+[\w/\-]*)', addr_for_parse)
+    if m_full:
+        city_part, street_part, house_part = m_full.groups()
+        base_city = city or city_part
+        return f"{base_city}, {street_part}, {house_part}".strip(' ,')
+
+    # Если не удалось распарсить как три части, берём всё до первого числа (сохраняя слова улицы), затем дом
+    m_house = re.search(r'^(.*?,\s*[^,]*?)(\d+[\w/\-]*)', addr_for_parse)
+    if m_house:
+        prefix, house = m_house.groups()
+        # Убедиться, что есть город
+        joined = f"{prefix}{house}".strip(' ,')
+        if city and city.lower() not in joined.lower():
+            joined = f"{city}, {joined}"
+        return joined
+
+    # Резерв: схлопнуть фильтрованные части и добавить город при необходимости
+    joined = ', '.join(filtered) if filtered else a
+    if city and city.lower() not in joined.lower():
+        joined = f"{city}, {joined}" if joined else city
+    return joined.strip(' ,')
 
 
 def normalize_url(url: str) -> str:
