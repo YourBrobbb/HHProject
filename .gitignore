@@ -1,6 +1,6 @@
-.venv/
+venv/
 .idea/
 .DS_Store
-.logs/app.log
-.src/__pycache__/
-.Data/ads.xlsx
+logs/app.log
+src/__pycache__/
+Data/ads.xlsx
