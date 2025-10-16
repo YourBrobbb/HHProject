@@ -76,16 +76,14 @@ def check_coordinates(coordinates: str):
         priority_zone_info = general_info.get("priority_zone_info", {})
         if priority_zone_info:
             text_code = priority_zone_info.get("text_code")
-            if text_code == 'not_served_people':
+            if text_code == 'new_build_zones':
                 return 'розовая'  # Розовая зона по населению
-            elif text_code == 'not_served_people_ozon':
+            elif text_code == 'load_predict':
                 return 'фиолетовая'  # Фиолетовая зона (если есть)
         
         # Проверяем обычные зоны
         zone_text_code = zone_info.get("text_code")
-        if zone_text_code == 'priority_zone':
-            return 'розовая'  # Приоритетная зона
-        elif zone_text_code == 'green_zone':
+        if zone_text_code == 'green_zone':
             return 'зеленая'  # Зеленая зона
     except Exception as e:
         logging.error(f'Ошибка разбора ответа от сервиса: {e}\nОтвет был: {response}')
@@ -121,8 +119,6 @@ def main():
         # Нормализация статусов для записи
         if not color or color in ['ERROR', 'NO_POINT_INFO']:
             color_to_write = 'N/A'
-        elif color == 'красная':
-            color_to_write = 'красная'
         else:
             color_to_write = color
         set_status_to_table(wb=wb, ws=ws, row_num=row_num, color=color_to_write)
