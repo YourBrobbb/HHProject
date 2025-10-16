@@ -21,18 +21,21 @@ PINK_FILL = PatternFill(start_color="FFB6C1", end_color="FFB6C1", fill_type="sol
 def set_status_to_table(wb: Workbook, ws: Worksheet, row_num: int, color: str):
     try:
         logging.debug(f'Обновление цвета в xlsx "{color}"...')
+        # Подбор заливки только для фиолетовой/розовой зон
         if color == 'фиолетовая':
             selected_fill = PURPLE_FILL
         elif color == 'розовая':
             selected_fill = PINK_FILL
         else:
-            return
+            selected_fill = None
         max_column = ws.max_column
-        for col in range(1, max_column + 1):
-            cell = ws.cell(row=row_num, column=col)
-            cell.fill = selected_fill
+        if selected_fill is not None:
+            for col in range(1, max_column + 1):
+                cell = ws.cell(row=row_num, column=col)
+                cell.fill = selected_fill
 
-        ws.cell(row_num, COLUMN_COLOR).value = color
+        # Всегда записываем текст статуса в целевую колонку
+        ws.cell(row=row_num, column=COLUMN_COLOR).value = color
         wb.save(FN_XLSX)
         return True
     except Exception as e:
@@ -64,14 +67,26 @@ def check_coordinates(coordinates: str):
         if description == 'Точка попадает в здание с действующим или открывающимся ПВЗ':
             return 'с действующим или открывающимся ПВЗ'
 
-        general_info = response.get("point_info", {}).get("general_info")
-        if not general_info:
-            return "NO_POINT_INFO"
-        text_code = (general_info.get("priority_zone_info", {}) or {}).get("text_code")
-        if text_code == 'not_served_people_ozon':
-            return 'фиолетовая'
-        if text_code == 'not_served_people':
-            return 'розовая'
+        # Проверяем зоны через новую структуру API
+        point_info = response.get("point_info", {})
+        zone_info = point_info.get("zone_info", {})
+        general_info = point_info.get("general_info", {})
+        
+        # Проверяем приоритетные зоны
+        priority_zone_info = general_info.get("priority_zone_info", {})
+        if priority_zone_info:
+            text_code = priority_zone_info.get("text_code")
+            if text_code == 'not_served_people':
+                return 'розовая'  # Розовая зона по населению
+            elif text_code == 'not_served_people_ozon':
+                return 'фиолетовая'  # Фиолетовая зона (если есть)
+        
+        # Проверяем обычные зоны
+        zone_text_code = zone_info.get("text_code")
+        if zone_text_code == 'priority_zone':
+            return 'розовая'  # Приоритетная зона
+        elif zone_text_code == 'green_zone':
+            return 'зеленая'  # Зеленая зона
     except Exception as e:
         logging.error(f'Ошибка разбора ответа от сервиса: {e}\nОтвет был: {response}')
     return 'N/A'
@@ -103,9 +118,14 @@ def main():
         logging.info(f'{"-" * 30}> [{row_num}/{row_count}] Обрабатываются координаты "{coordinates}"')
         color = check_coordinates(coordinates)
         logging.info(f'Результат = {color}')
-        if not color or color not in ['фиолетовая', 'розовая']:
-            continue
-        set_status_to_table(wb=wb, ws=ws, row_num=row_num, color=color)
+        # Нормализация статусов для записи
+        if not color or color in ['ERROR', 'NO_POINT_INFO']:
+            color_to_write = 'N/A'
+        elif color == 'красная':
+            color_to_write = 'красная'
+        else:
+            color_to_write = color
+        set_status_to_table(wb=wb, ws=ws, row_num=row_num, color=color_to_write)
 
 
 if __name__ == '__main__':

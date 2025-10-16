@@ -112,7 +112,6 @@ def normalize_address_for_geocoding(address: str, city: Optional[str]) -> str:
     parts = [p.strip() for p in a.split(',') if p.strip()]
     filtered = [p for p in parts if not any(tok.lower() in p.lower() for tok in tokens_to_drop)]
     # Попытка выделить шаблон: Город, Улица, Дом
-    # Пример: "Москва, 2-й Кожевнический пер., 3 Павелецкая ..." -> "Москва, 2-й Кожевнический пер., 3"
     addr_for_parse = ', '.join(filtered) if filtered else a
     m_full = re.match(r'^\s*([^,]+),\s*([^,]+),\s*(\d+[\w/\-]*)', addr_for_parse)
     if m_full:
