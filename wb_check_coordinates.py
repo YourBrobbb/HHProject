@@ -17,6 +17,8 @@ PURPLE_FILL = PatternFill(start_color="9966CC", end_color="9966CC", fill_type="s
 
 PINK_FILL = PatternFill(start_color="FFB6C1", end_color="FFB6C1", fill_type="solid")
 
+GOLD_FILL = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+
 
 def set_status_to_table(wb: Workbook, ws: Worksheet, row_num: int, color: str):
     try:
@@ -24,8 +26,12 @@ def set_status_to_table(wb: Workbook, ws: Worksheet, row_num: int, color: str):
         # Подбор заливки только для фиолетовой/розовой зон
         if color == 'фиолетовая':
             selected_fill = PURPLE_FILL
+        elif color == 'новостройки':
+            selected_fill = PURPLE_FILL
         elif color == 'розовая':
             selected_fill = PINK_FILL
+        elif color == 'золотая':
+            selected_fill = GOLD_FILL
         else:
             selected_fill = None
         max_column = ws.max_column
@@ -78,13 +84,18 @@ def check_coordinates(coordinates: str):
             text_code = priority_zone_info.get("text_code")
             if text_code == 'new_build_zones':
                 return 'розовая'  # Розовая зона по населению
-            elif text_code == 'load_predict':
+            elif text_code == 'gold_zone':
+                return 'золотая'
+            elif text_code == 'load_predict' or "by_turnover_predict":
                 return 'фиолетовая'  # Фиолетовая зона (если есть)
+            elif text_code == "new_build_only":
+                return 'новостройки'
         
         # Проверяем обычные зоны
         zone_text_code = zone_info.get("text_code")
         if zone_text_code == 'green_zone':
             return 'зеленая'  # Зеленая зона
+
     except Exception as e:
         logging.error(f'Ошибка разбора ответа от сервиса: {e}\nОтвет был: {response}')
     return 'N/A'
@@ -109,7 +120,7 @@ def main():
             continue
 
         prev_color = ws.cell(row_num, 2).value
-        if prev_color and prev_color in ['фиолетовая', 'розовая']:
+        if prev_color and prev_color in ['фиолетовая', 'розовая', 'золотая', 'новостройки']:
             logging.info(f'Координаты "{coordinates}" уже были ранее обработан. Пропускаем...')
             continue
         is_need_to_pause = True
